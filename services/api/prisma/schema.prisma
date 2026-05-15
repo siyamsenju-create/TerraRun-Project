@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String               @id @default(uuid()) @db.Uuid
+  clerkUserId        String               @unique @map("clerk_user_id")
+  email              String               @unique
+  role               String               @default("user")
+  status             String               @default("active")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  profile            Profile?
+  runs               Run[]
+  territoryClaims    TerritoryClaim[]
+  teamMemberships    TeamMember[]
+  ownedTeams         Team[]               @relation("TeamOwner")
+  achievements       Achievement[]
+  subscriptions      Subscription[]
+  notifications      Notification[]
+  challengedBattles  TerritoryBattle[]    @relation("BattleChallenger")
+  defendedBattles    TerritoryBattle[]    @relation("BattleDefender")
+
+  @@map("users")
+}
+
+model Profile {
+  userId       String   @id @map("user_id") @db.Uuid
+  displayName  String   @map("display_name")
+  avatarUrl    String?  @map("avatar_url")
+  homeCity     String?  @map("home_city")
+  countryCode  String?  @map("country_code")
+  privacyLevel String   @default("public") @map("privacy_level")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Run {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @map("user_id") @db.Uuid
+  status           String
+  startedAt        DateTime          @map("started_at")
+  endedAt          DateTime?         @map("ended_at")
+  distanceM        Decimal           @default(0) @map("distance_m") @db.Decimal(10, 2)
+  durationS        Int               @default(0) @map("duration_s")
+  avgPaceSPerKm    Int?              @map("avg_pace_s_per_km")
+  maxSpeedMps      Decimal?          @map("max_speed_mps") @db.Decimal(6, 2)
+  fraudScore       Decimal           @default(0) @map("fraud_score") @db.Decimal(5, 2)
+  validationStatus String            @default("pending") @map("validation_status")
+  routeGeojson     Json?             @map("route_geojson")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  user             User              @relation(fields: [userId], references: [id])
+  gpsPoints        GpsPoint[]
+  territoryClaims  TerritoryClaim[]
+
+  @@index([userId, startedAt])
+  @@index([status])
+  @@map("runs")
+}
+
+model GpsPoint {
+  id                  BigInt   @id @default(autoincrement())
+  runId               String   @map("run_id") @db.Uuid
+  recordedAt          DateTime @map("recorded_at")
+  latitude            Float
+  longitude           Float
+  altitudeM           Decimal? @map("altitude_m") @db.Decimal(8, 2)
+  speedMps            Decimal? @map("speed_mps") @db.Decimal(6, 2)
+  heading             Decimal? @db.Decimal(6, 2)
+  horizontalAccuracyM Decimal? @map("horizontal_accuracy_m") @db.Decimal(8, 2)
+  pointGeojson        Json?    @map("point_geojson")
+  run                 Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, recordedAt])
+  @@map("gps_points")
+}
+
+model Territory {
+  id               String            @id @default(uuid()) @db.Uuid
+  gridVersion      String            @default("v1") @map("grid_version")
+  cellX            Int               @map("cell_x")
+  cellY            Int               @map("cell_y")
+  cellId           String            @unique @map("cell_id")
+  ownerUserId      String?           @map("owner_user_id") @db.Uuid
+  ownerTeamId      String?           @map("owner_team_id") @db.Uuid
+  status           String            @default("unowned")
+  strengthScore    Int               @default(0) @map("strength_score")
+  lastClaimedAt    DateTime?         @map("last_claimed_at")
+  lastReinforcedAt DateTime?         @map("last_reinforced_at")
+  cooldownUntil    DateTime?         @map("cooldown_until")
+  decayStartedAt   DateTime?         @map("decay_started_at")
+  geometryGeojson  Json              @map("geometry_geojson")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  claims           TerritoryClaim[]
+  battles          TerritoryBattle[]
+
+  @@unique([gridVersion, cellX, cellY])
+  @@index([ownerUserId])
+  @@index([ownerTeamId])
+  @@index([status])
+  @@map("territories")
+}
+
+model TerritoryClaim {
+  id            String    @id @default(uuid()) @db.Uuid
+  territoryId   String    @map("territory_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  teamId        String?   @map("team_id") @db.Uuid
+  runId         String    @map("run_id") @db.Uuid
+  claimType     String    @map("claim_type")
+  coverageScore Decimal   @map("coverage_score") @db.Decimal(6, 2)
+  strengthDelta Int       @default(0) @map("strength_delta")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  territory     Territory @relation(fields: [territoryId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+  run           Run       @relation(fields: [runId], references: [id])
+
+  @@index([territoryId, createdAt])
+  @@index([userId, createdAt])
+  @@index([runId])
+  @@map("territory_claims")
+}
+
+model TerritoryBattle {
+  id               String    @id @default(uuid()) @db.Uuid
+  territoryId      String    @map("territory_id") @db.Uuid
+  challengerUserId String    @map("challenger_user_id") @db.Uuid
+  defenderUserId   String?   @map("defender_user_id") @db.Uuid
+  challengerTeamId String?   @map("challenger_team_id") @db.Uuid
+  defenderTeamId   String?   @map("defender_team_id") @db.Uuid
+  status           String    @default("pending")
+  startsAt         DateTime  @map("starts_at")
+  endsAt           DateTime  @map("ends_at")
+  challengerScore  Decimal?  @map("challenger_score") @db.Decimal(10, 2)
+  defenderScore    Decimal?  @map("defender_score") @db.Decimal(10, 2)
+  winnerUserId     String?   @map("winner_user_id") @db.Uuid
+  winnerTeamId     String?   @map("winner_team_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  territory        Territory @relation(fields: [territoryId], references: [id])
+  challenger       User      @relation("BattleChallenger", fields: [challengerUserId], references: [id])
+  defender         User?     @relation("BattleDefender", fields: [defenderUserId], references: [id])
+
+  @@index([territoryId])
+  @@index([challengerUserId])
+  @@index([defenderUserId])
+  @@map("territory_battles")
+}
+
+model Challenge {
+  id           String                 @id @default(uuid()) @db.Uuid
+  type         String
+  title        String
+  description  String?
+  startsAt     DateTime               @map("starts_at")
+  endsAt       DateTime               @map("ends_at")
+  rules        Json                   @default("{}")
+  reward       Json                   @default("{}")
+  status       String                 @default("scheduled")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  participants ChallengeParticipant[]
+
+  @@map("challenges")
+}
+
+model ChallengeParticipant {
+  challengeId String    @map("challenge_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  score       Decimal   @default(0) @db.Decimal(12, 2)
+  rank        Int?
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@id([challengeId, userId])
+  @@map("challenge_participants")
+}
+
+model Team {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String       @unique
+  slug        String       @unique
+  description String?
+  avatarUrl   String?      @map("avatar_url")
+  ownerUserId String       @map("owner_user_id") @db.Uuid
+  status      String       @default("active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  owner       User         @relation("TeamOwner", fields: [ownerUserId], references: [id])
+  members     TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId   String   @map("team_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  role     String   @default("member")
+  joinedAt DateTime @default(now()) @map("joined_at")
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+model Achievement {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  code     String
+  title    String
+  metadata Json     @default("{}")
+  earnedAt DateTime @default(now()) @map("earned_at")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+  @@map("achievements")
+}
+
+model Subscription {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  provider               String
+  providerCustomerId     String?   @map("provider_customer_id")
+  providerSubscriptionId String?   @map("provider_subscription_id")
+  planCode               String    @map("plan_code")
+  status                 String
+  currentPeriodStart     DateTime? @map("current_period_start")
+  currentPeriodEnd       DateTime? @map("current_period_end")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  type      String
+  title     String
+  body      String
+  data      Json      @default("{}")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Leaderboard {
+  id           String   @id @default(uuid()) @db.Uuid
+  scope        String
+  scopeId      String   @map("scope_id")
+  metric       String
+  period       String
+  userId       String?  @map("user_id") @db.Uuid
+  teamId       String?  @map("team_id") @db.Uuid
+  score        Decimal  @db.Decimal(14, 2)
+  rank         Int
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  @@index([scope, scopeId, metric, period, rank])
+  @@index([userId])
+  @@index([teamId])
+  @@map("leaderboards")
+}
+

@@ -1,0 +1,25 @@
+{
+  "name": "@terrarun/admin",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "echo \"No admin tests yet\""
+  },
+  "dependencies": {
+    "next": "^15.0.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.1",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "eslint": "^9.13.0",
+    "eslint-config-next": "^15.0.2",
+    "typescript": "^5.6.3"
+  }
+}

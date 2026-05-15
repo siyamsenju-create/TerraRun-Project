@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "TerraRun",
+    "slug": "terrarun",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "terrarun",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.terrarun.mobile"
+    },
+    "android": {
+      "package": "app.terrarun.mobile"
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000",
+      "authMode": "dev"
+    }
+  }
+}
+

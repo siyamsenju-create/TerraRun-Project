@@ -1,0 +1,29 @@
+{
+  "name": "terrarun",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @terrarun/api --filter @terrarun/web dev",
+    "dev:api": "corepack pnpm --filter @terrarun/api dev",
+    "dev:web": "corepack pnpm --filter @terrarun/web dev",
+    "dev:mobile": "corepack pnpm --filter @terrarun/mobile start",
+    "dev:admin": "corepack pnpm --filter @terrarun/admin dev",
+    "build": "corepack pnpm -r build",
+    "typecheck": "corepack pnpm -r typecheck",
+    "lint": "corepack pnpm -r lint",
+    "test": "corepack pnpm -r test",
+    "db:generate": "corepack pnpm --filter @terrarun/api prisma:generate",
+    "db:validate": "corepack pnpm --filter @terrarun/api prisma:validate",
+    "db:migrate": "corepack pnpm --filter @terrarun/api prisma:migrate",
+    "infra:up": "docker compose -f infra/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "@terrarun/config": "workspace:*",
+    "eslint": "^9.13.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.11.0"
+  }
+}

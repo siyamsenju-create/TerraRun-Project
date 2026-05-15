@@ -1,0 +1,9 @@
+{
+  "extends": "@terrarun/config/tsconfig/nest",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

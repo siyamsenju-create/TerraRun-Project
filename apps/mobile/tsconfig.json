@@ -1,0 +1,9 @@
+{
+  "extends": "@terrarun/config/tsconfig/base",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true
+  },
+  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx"]
+}
+
