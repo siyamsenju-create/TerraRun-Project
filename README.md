@@ -25,3 +25,4 @@ corepack pnpm dev
 ```
 
 The first implementation slice uses Clerk-compatible placeholders. Real Clerk keys are not required for local development.
+# New-project
